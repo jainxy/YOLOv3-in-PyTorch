@@ -33,7 +33,7 @@ from PIL import Image
 from torchvision import transforms as tv_tf
 from torchvision.transforms import functional as TF
 
-from config import EPSILON
+from ..config import EPSILON
 
 
 # def default_transform_fn_old(padding, img_size):

@@ -29,20 +29,20 @@ import datetime
 import json
 import logging
 import os
-import time
+import time, pdb
 
 import torch
 from PIL import Image
 from torch.utils.data import DataLoader
 
-from datasets.utils import collate_img_label_fn
-from datasets.image import ImageFolder
-from datasets.caltech import CaltechPedDataset
-from datasets.coco import CocoDetectionBoundingBox
-from inference import post_process
-from model import YoloNetV3
-from training import yolo_loss_fn
-from utils import load_classes, untransform_bboxes, add_coco_empty_category, cxcywh_to_xywh, init_layer_randomly, draw_result
+from yolov3PytorchPruning.src.datasets.utils import collate_img_label_fn
+from yolov3PytorchPruning.src.datasets.image import ImageFolder
+# from yolov3PytorchPruning.src.datasets.caltech import CaltechPedDataset
+from yolov3PytorchPruning.src.datasets.coco import CocoDetectionBoundingBox
+from yolov3PytorchPruning.src.inference import post_process
+from yolov3PytorchPruning.src.model import YoloNetV3
+from yolov3PytorchPruning.src.training import yolo_loss_fn
+from yolov3PytorchPruning.src.utils import load_classes, untransform_bboxes, add_coco_empty_category, cxcywh_to_xywh, init_layer_randomly, draw_result
 
 
 def parse_args():
@@ -117,7 +117,7 @@ def parse_args():
 
     # inference parameters:
     parser.add_argument('--class-path', dest='class_path', type=str, default='../data/coco.names',
-                        help="TINFERENCE ONLY: he path to the file storing class label names.")
+                        help="INFERENCE ONLY: the path to the file storing class label names.")
     parser.add_argument('--conf-thres', dest='conf_thres', type=float, default=0.8,
                         help="INFERENCE ONLY: object detection confidence threshold during inference.")
     parser.add_argument('--nms-thres', dest='nms_thres', type=float, default=0.4,
@@ -349,10 +349,10 @@ def save_checkpoint_weight_file(model, optimizer, epoch, batch, loss, weight_fil
 def run_yolo_inference(opt):
     # configure logging
     current_datetime_str = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    log_file_name_by_time = current_datetime_str + ".log"
-    if options.debug:
+    log_file_name_by_time = opt.outstr + ".log"
+    if opt.debug:
         log_level = logging.DEBUG
-    elif options.verbose:
+    elif opt.verbose:
         log_level = logging.INFO
     else:
         log_level = logging.WARNING
@@ -361,7 +361,9 @@ def run_yolo_inference(opt):
     dev = config_device(opt.cpu_only)
     make_output_dir(opt.out_dir)
     # load model
-    model = load_yolov3_model(opt.weight_path, dev, ckpt=opt.from_ckpt)
+    model = opt.model
+    if opt.model is None:
+        model = load_yolov3_model(opt.weight_path, dev, ckpt=opt.from_ckpt)
     # load data
     dataloader = load_dataset(type='image_folder',
                               img_dir=opt.img_dir,
@@ -375,12 +377,12 @@ def run_yolo_inference(opt):
     results = run_detection(model, dataloader, dev, opt.conf_thres, opt.nms_thres)
     # post processing
     if opt.save_det:
-        json_path = '{}/{}/detections.json'.format(opt.out_dir, current_datetime_str)
+        json_path = '{}/{}/detections.json'.format(opt.out_dir, opt.outstr)
         make_output_dir(os.path.split(json_path)[0])
         save_results_as_json(results, json_path)
     if opt.save_img:
         class_names = load_classes(opt.class_path)
-        img_path = '{}/{}/img'.format(opt.out_dir, current_datetime_str)
+        img_path = '{}/{}/img'.format(opt.out_dir, opt.outstr)
         make_output_dir(img_path)
         save_results_as_images(results, img_path, class_names)
     return
