@@ -175,6 +175,7 @@ def load_dataset(type, img_dir, annot_dir, img_size, batch_size, n_cpu, shuffle,
         _collate_fn = collate_img_label_fn
     else:
         raise TypeError("dataset types can only be 'image_folder', 'coco' or 'caltech'.")
+    pdb.set_trace()
     if _collate_fn is not None:
         _dataloader = DataLoader(_dataset, batch_size, shuffle, num_workers=n_cpu, collate_fn=_collate_fn)
     else:
@@ -403,7 +404,10 @@ def run_yolo_training(opt):
     dev = config_device(opt.cpu_only)
     ckpt_dir = '{}/{}'.format(opt.ckpt_dir, current_datetime_str)
     os.makedirs(ckpt_dir, exist_ok=True)
-    model = load_yolov3_model(opt.weight_path, dev, ckpt=opt.from_ckpt, mode='train')
+    # load model
+    model = opt.model
+    if opt.model is None:
+        model = load_yolov3_model(opt.weight_path, dev, ckpt=opt.from_ckpt, mode='train')
     finetune_layers = model.yolo_last_n_layers(opt.n_last_layers)
 
     for p in model.parameters():

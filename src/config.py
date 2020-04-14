@@ -27,6 +27,9 @@
 # The configuration of COCO dataset
 MISSING_IDS = [12, 26, 29, 30, 45, 66, 68, 69, 71, 83, 91]
 NUM_CLASSES_COCO = 80
+# The configuration of Udacity OD dataset
+MISSING_IDS_NEW = []
+NUM_CLASSES_COCO_NEW = 3
 
 # the parameters below are used to configure the YOLOv3 network correctly.
 # Original YOLOv3 network has three scales, where each scale has three predefined anchors.
@@ -40,7 +43,9 @@ ANCHORS = [(10, 13), (16, 30), (33, 23), (30, 61), (62, 45), (59, 119), (116, 90
 assert len(ANCHORS) == SCALES * NUM_ANCHORS_PER_SCALE
 NUM_CLASSES = NUM_CLASSES_COCO
 NUM_ATTRIB = 4 + 1 + NUM_CLASSES
+NUM_ATTRIB_NEW = 4 + 1 + NUM_CLASSES_COCO_NEW
 LAST_LAYER_DIM = NUM_ANCHORS_PER_SCALE * NUM_ATTRIB
+LAST_LAYER_DIM_NEW = NUM_ANCHORS_PER_SCALE * NUM_ATTRIB_NEW
 
 
 # Training parameters.
