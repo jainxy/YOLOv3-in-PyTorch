@@ -30,7 +30,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .config import ANCHORS, NUM_ANCHORS_PER_SCALE, NUM_CLASSES, NUM_ATTRIB, LAST_LAYER_DIM
+from .config import *
 
 Tensor = torch.Tensor
 
@@ -117,14 +117,14 @@ class YoloLayer(nn.Module):
         if self.training:
             output_raw = x.view(num_batch,
                                 NUM_ANCHORS_PER_SCALE,
-                                NUM_ATTRIB,
+                                NUM_ATTRIB_NEW,
                                 num_grid,
-                                num_grid).permute(0, 1, 3, 4, 2).contiguous().view(num_batch, -1, NUM_ATTRIB)
+                                num_grid).permute(0, 1, 3, 4, 2).contiguous().view(num_batch, -1, NUM_ATTRIB_NEW)
             return output_raw
         else:
             prediction_raw = x.view(num_batch,
                                     NUM_ANCHORS_PER_SCALE,
-                                    NUM_ATTRIB,
+                                    NUM_ATTRIB_NEW,
                                     num_grid,
                                     num_grid).permute(0, 1, 3, 4, 2).contiguous()
 
@@ -143,7 +143,7 @@ class YoloLayer(nn.Module):
             h_pred = torch.exp(prediction_raw[..., 3]) * anchor_h  # Height
             bbox_pred = torch.stack((x_center_pred, y_center_pred, w_pred, h_pred), dim=4).view((num_batch, -1, 4)) #cxcywh
             conf_pred = torch.sigmoid(prediction_raw[..., 4]).view(num_batch, -1, 1)  # Conf
-            cls_pred = torch.sigmoid(prediction_raw[..., 5:]).view(num_batch, -1, NUM_CLASSES)  # Cls pred one-hot.
+            cls_pred = torch.sigmoid(prediction_raw[..., 5:]).view(num_batch, -1, NUM_CLASSES_COCO_NEW)  # Cls pred one-hot.
 
             output = torch.cat((bbox_pred, conf_pred, cls_pred), -1)
             return output

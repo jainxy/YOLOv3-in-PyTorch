@@ -28,7 +28,7 @@ import argparse
 import datetime
 import json
 import logging
-import os
+import os, sys
 import time, pdb
 
 import torch
@@ -131,7 +131,7 @@ def config_logging(log_dir, log_file_name, level=logging.WARNING, screen=True):
     log_path = os.path.join(log_dir, log_file_name)
     _handlers = [logging.FileHandler(log_path)]
     if screen:
-        _handlers.append(logging.StreamHandler())
+        _handlers.append(logging.StreamHandler(sys.stdout))
     logging.basicConfig(level=level, handlers=_handlers)
 
 
@@ -167,7 +167,7 @@ def load_dataset(type, img_dir, annot_dir, img_size, batch_size, n_cpu, shuffle,
         _dataset = ImageFolder(img_dir, img_size=img_size)
         _collate_fn = None
     elif type == "coco":
-        _transform = 'random' if augment else 'default'
+        _transform = 'default'#'random' if augment else 'default'
         _dataset = CocoDetectionBoundingBox(img_dir, annot_dir, img_size=img_size, transform=_transform)
         _collate_fn = collate_img_label_fn
     elif type == "caltech":
@@ -175,7 +175,6 @@ def load_dataset(type, img_dir, annot_dir, img_size, batch_size, n_cpu, shuffle,
         _collate_fn = collate_img_label_fn
     else:
         raise TypeError("dataset types can only be 'image_folder', 'coco' or 'caltech'.")
-    pdb.set_trace()
     if _collate_fn is not None:
         _dataloader = DataLoader(_dataset, batch_size, shuffle, num_workers=n_cpu, collate_fn=_collate_fn)
     else:
@@ -426,7 +425,7 @@ def run_yolo_training(opt):
                               n_cpu=opt.n_cpu,
                               shuffle=True,
                               augment=opt.data_augment)
-
+    # pdb.set_trace()
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=opt.learning_rate

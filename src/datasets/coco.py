@@ -28,7 +28,7 @@ import numpy as np
 import torch
 from torchvision.datasets import CocoDetection
 
-from ..config import NUM_ATTRIB, NUM_CLASSES_COCO, MISSING_IDS
+from ..config import *
 from .transforms import default_transform_fn, random_transform_fn
 from ..utils import xywh_to_cxcywh
 
@@ -66,7 +66,7 @@ class CocoDetectionBoundingBox(CocoDetection):
         if labels:
             label_tensor = torch.stack(labels)
         else:
-            label_tensor = torch.zeros((0, NUM_ATTRIB))
+            label_tensor = torch.zeros((0, NUM_ATTRIB_NEW))
         transformed_img_tensor, label_tensor = self._tf(img, label_tensor)
         label_tensor = xywh_to_cxcywh(label_tensor)
         return transformed_img_tensor, label_tensor, label_tensor.size(0)
@@ -75,7 +75,7 @@ class CocoDetectionBoundingBox(CocoDetection):
     def _coco_category_to_one_hot(category_id, dtype="uint"):
         """ convert from a category_id to one-hot vector, considering there are missing IDs in coco dataset."""
         new_id = CocoDetectionBoundingBox._delete_coco_empty_category(category_id)
-        return CocoDetectionBoundingBox._category_to_one_hot(new_id, NUM_CLASSES_COCO, dtype)
+        return CocoDetectionBoundingBox._category_to_one_hot(new_id, NUM_CLASSES_COCO_NEW, dtype)
 
     @staticmethod
     def _category_to_one_hot(category_id, num_classes, dtype="uint"):
@@ -94,7 +94,7 @@ class CocoDetectionBoundingBox(CocoDetection):
             new_id (int): The new ID after empty categories are removed. """
         starting_idx = 1
         new_id = old_id - starting_idx
-        for missing_id in MISSING_IDS:
+        for missing_id in MISSING_IDS_NEW:
             if old_id > missing_id:
                 new_id -= 1
             elif old_id == missing_id:
