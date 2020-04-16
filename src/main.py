@@ -391,7 +391,8 @@ def run_yolo_inference(opt):
 def run_yolo_training(opt):
     # configure logging
     current_datetime_str = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    log_file_name_by_time = current_datetime_str + ".log"
+    # outstr = "_".join((str(opt.batch_size),str(opt.learning_rate),opt.outstr))
+    log_file_name_by_time = opt.outstr + ".log"
     if opt.debug:
         log_level = logging.DEBUG
     elif opt.verbose:
@@ -401,7 +402,7 @@ def run_yolo_training(opt):
     config_logging(opt.log_dir, log_file_name_by_time, level=log_level)
     # configure device
     dev = config_device(opt.cpu_only)
-    ckpt_dir = '{}/{}'.format(opt.ckpt_dir, current_datetime_str)
+    ckpt_dir = '{}/{}'.format(opt.ckpt_dir, opt.outstr)
     os.makedirs(ckpt_dir, exist_ok=True)
     # load model
     model = opt.model
