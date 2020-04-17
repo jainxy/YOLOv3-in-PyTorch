@@ -426,7 +426,6 @@ def run_yolo_training(opt):
                               n_cpu=opt.n_cpu,
                               shuffle=True,
                               augment=opt.data_augment)
-    # pdb.set_trace()
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=opt.learning_rate

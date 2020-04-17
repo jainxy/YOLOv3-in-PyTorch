@@ -97,8 +97,11 @@ def make_conv_and_res_block(in_channels, out_channels, res_repeat):
 
 class YoloLayer(nn.Module):
 
-    def __init__(self, scale, stride):
+    def __init__(self, scale, stride, num_classes=80):
         super(YoloLayer, self).__init__()
+        self.scale = scale
+        self.stride = stride
+        self.num_classes = num_classes
         if scale == 's':
             idx = (0, 1, 2)
         elif scale == 'm':
@@ -108,7 +111,6 @@ class YoloLayer(nn.Module):
         else:
             idx = None
         self.anchors = torch.tensor([ANCHORS[i] for i in idx])
-        self.stride = stride
 
     def forward(self, x):
         num_batch = x.size(0)
@@ -117,14 +119,14 @@ class YoloLayer(nn.Module):
         if self.training:
             output_raw = x.view(num_batch,
                                 NUM_ANCHORS_PER_SCALE,
-                                NUM_ATTRIB_NEW,
+                                4+1+self.num_classes,
                                 num_grid,
-                                num_grid).permute(0, 1, 3, 4, 2).contiguous().view(num_batch, -1, NUM_ATTRIB_NEW)
+                                num_grid).permute(0, 1, 3, 4, 2).contiguous().view(num_batch, -1, 4+1+self.num_classes)
             return output_raw
         else:
             prediction_raw = x.view(num_batch,
                                     NUM_ANCHORS_PER_SCALE,
-                                    NUM_ATTRIB_NEW,
+                                    4+1+self.num_classes,
                                     num_grid,
                                     num_grid).permute(0, 1, 3, 4, 2).contiguous()
 
@@ -143,7 +145,7 @@ class YoloLayer(nn.Module):
             h_pred = torch.exp(prediction_raw[..., 3]) * anchor_h  # Height
             bbox_pred = torch.stack((x_center_pred, y_center_pred, w_pred, h_pred), dim=4).view((num_batch, -1, 4)) #cxcywh
             conf_pred = torch.sigmoid(prediction_raw[..., 4]).view(num_batch, -1, 1)  # Conf
-            cls_pred = torch.sigmoid(prediction_raw[..., 5:]).view(num_batch, -1, NUM_CLASSES_COCO_NEW)  # Cls pred one-hot.
+            cls_pred = torch.sigmoid(prediction_raw[..., 5:]).view(num_batch, -1, self.num_classes)  # Cls pred one-hot.
 
             output = torch.cat((bbox_pred, conf_pred, cls_pred), -1)
             return output
@@ -160,7 +162,7 @@ class DetectionBlock(nn.Module):
     out_channels = n
     """
 
-    def __init__(self, in_channels, out_channels, scale, stride):
+    def __init__(self, in_channels, out_channels, scale, stride, num_classes=80):
         super(DetectionBlock, self).__init__()
         assert out_channels % 2 == 0  #assert out_channels is an even number
         half_out_channels = out_channels // 2
@@ -170,8 +172,8 @@ class DetectionBlock(nn.Module):
         self.conv4 = ConvLayer(half_out_channels, out_channels, 3)
         self.conv5 = ConvLayer(out_channels, half_out_channels, 1)
         self.conv6 = ConvLayer(half_out_channels, out_channels, 3)
-        self.conv7 = nn.Conv2d(out_channels, LAST_LAYER_DIM, 1, bias=True)
-        self.yolo = YoloLayer(scale, stride)
+        self.conv7 = nn.Conv2d(out_channels, (num_classes+4+1)*NUM_ANCHORS_PER_SCALE, 1, bias=True)
+        self.yolo = YoloLayer(scale, stride, num_classes=num_classes)
 
     def forward(self, x):
         tmp = self.conv1(x)
@@ -215,13 +217,13 @@ class YoloNetTail(nn.Module):
     It will finally output the detection result.
     Assembling YoloNetTail and DarkNet53BackBone will give you final result"""
 
-    def __init__(self):
+    def __init__(self, num_classes=80):
         super(YoloNetTail, self).__init__()
-        self.detect1 = DetectionBlock(1024, 1024, 'l', 32)
+        self.detect1 = DetectionBlock(1024, 1024, 'l', 32, num_classes=num_classes)
         self.conv1 = ConvLayer(512, 256, 1)
-        self.detect2 = DetectionBlock(768, 512, 'm', 16)
+        self.detect2 = DetectionBlock(768, 512, 'm', 16, num_classes=num_classes)
         self.conv2 = ConvLayer(256, 128, 1)
-        self.detect3 = DetectionBlock(384, 256, 's', 8)
+        self.detect3 = DetectionBlock(384, 256, 's', 8, num_classes=num_classes)
 
     def forward(self, x1, x2, x3):
         out1 = self.detect1(x1)
@@ -241,10 +243,10 @@ class YoloNetTail(nn.Module):
 
 class YoloNetV3(nn.Module):
 
-    def __init__(self, nms=False, post=True):
+    def __init__(self, nms=False, post=True, num_classes=80):
         super(YoloNetV3, self).__init__()
         self.darknet = DarkNet53BackBone()
-        self.yolo_tail = YoloNetTail()
+        self.yolo_tail = YoloNetTail(num_classes=num_classes)
         self.nms = nms
         self._post_process = post
 
